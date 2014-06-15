@@ -408,6 +408,17 @@ define([
                     /// </signature>
                     return new ns.GroupedSortedListProjection(this, groupKey, groupData, groupSorter);
                 },
+                createSliced: function (begin, end) {
+                    /// <signature helpKeyword="WinJS.Binding.ListBase.createSliced">
+                    /// <summary locid="WinJS.Binding.ListBase.createSliced">
+                    /// Creates a live slice projection over this list. As the list changes, the slice projection reacts to those changes and may also change.
+                    /// </summary>
+                    /// <param name="begin" type="Number" locid="WinJS.Binding.ListBase.createSliced_p:begin">Zero-based index at which to begin extraction.</param>
+                    /// <param name="end" type="Number" optional="true" locid="WinJS.Binding.ListBase.createSliced_p:end">Zero-based index at which to end extraction. Slice extracts up to but not including end.</param>
+                    /// <returns type="WinJS.Binding.List" locid="WinJS.Binding.ListBase.createSliced_returnValue">Sliced projection over the list.</returns>
+                    /// </signature>
+                    return new ns.SlicedListProjection(this, begin, end);
+                },
                 createSorted: function (sorter) {
                     /// <signature helpKeyword="WinJS.Binding.ListBase.createSorted">
                     /// <summary locid="WinJS.Binding.ListBase.createSorted">
@@ -812,6 +823,221 @@ define([
                         });
                     }
                     return result;
+                }
+            }, {
+                supportedForProcessing: false,
+            })
+        }),
+
+        SlicedListProjection: WinJS.Namespace._lazy(function () {
+            return WinJS.Class.derive(ns.ListProjection, function (list, start, end) {
+                this._list = list;
+                this._addListListener("itemchanged", this._listItemChanged);
+                this._addListListener("iteminserted", this._listItemInserted);
+                this._addListListener("itemmutated", this._listItemMutated);
+                this._addListListener("itemmoved", this._listItemMoved);
+                this._addListListener("itemremoved", this._listItemRemoved);
+                this._addListListener("reload", this._listReload);
+                this._start = start;
+                this._end = end;
+                if (this._start < 0 || +this._start !== this._start) {
+                    throw new Error("NYI");
+                }
+            }, {
+
+                _length: {
+                    get: function () {
+                        if (+this._end !== this._end) {
+                            // length grows with the list
+                            return Math.max(0, this._list.length - start);
+                        } else if (this._end < 0) {
+                            // length is relative to the end of the lsit
+                            var end = this._list.length - this._end;
+                            return Math.max(0, end - start)
+                        } else {
+                            // length is capped by this._end
+                            var end = Math.min(this._end, this._list.length);
+                            return Math.max(0, end - this._start);
+                        }
+                    }
+                },
+
+                _relativeLength: {
+                    get: function () { return +this._end !== this._end || this._end < 0; }
+                },
+
+                _listItemChanged: function (event) {
+                    var key = event.detail.key;
+                    var index = event.detail.index - this._start;
+                    if (index >= 0 && index < this.length) {
+                        var oldValue = event.detail.oldValue;
+                        var newValue = event.detail.newValue;
+                        var oldItem = event.detail.oldItem;
+                        var newItem = event.detail.newItem;
+                        this._notifyItemChanged(key, index, oldValue, newValue, oldItem, newItem);
+                    }
+                },
+                _listItemInserted: function (event) {
+                    if (this.length === 0) {
+                        return;
+                    }
+                    var key = event.detail.key;
+                    var index = event.detail.index - this._start;
+                    var value = event.detail.value;
+                    if (index < this.length) {
+                        if (index < 0) {
+                            var first = this._list.getItem(this._start);
+                            this._notifyItemInserted(first.key, 0, first.data);
+                        } else {
+                            this._notifyItemInserted(key, index, value);
+                        }
+                        // if this resulted in pushing one off the end we have to notify that it has been removed
+                        if (!this._relativeLength) {
+                            if ((this._start + this.length === this._end) &&
+                                (this._start + this.length > this._list.length)) {
+                                var prevLast = this._list.getItem(this._start + this.length);
+                                this._notifyItemRemoved(prevLast.key, this.length - 1, prevLast.data, prevLast);
+                            }
+                        }
+                    }
+                },
+                _listItemMoved: function (event) {
+                    var key = event.detail.key;
+                    var newIndex = event.detail.newIndex - this._start;
+                    var oldIndex = event.detail.oldIndex - this._start;
+                    var value = event.detail.value;
+                    var item = this._list.getItem(event.detail.newIndex);
+                    var newInSlice = newIndex >= 0 && newIndex < this.length;
+                    var oldInSlice = oldIndex >= 0 && oldIndex < this.length;
+                    if (newInSlice && oldInSlice) {
+                        // move within the slice
+                        this._notifyItemMoved(key, oldIndex, newIndex, value);
+                    } else if (oldIndex < 0 && newInSlice) {
+                        // move of an item preceeding the slice into the slice
+                        // - head of slice is lost to prefix
+                        // - target becomes an insert
+                        throw new Error("NYI");
+                    } else if (newIndex < 0 && oldInSlice) {
+                        // move of an item in the slice to preceed the slice
+                        // - source is a remove
+                        // - tail of slice may be inserted from suffix
+                        throw new Error("NYI");
+                    } else if (newInSlice) {
+                        // move of an item after the slice into the slice
+                        // - target is a insert
+                        // - tail of slice is lost to suffix (maybe, not in cases like end:-1)
+                        throw new Error("NYI");
+                    } else if (oldInSlice) {
+                        // move of an item in the slice to after the slice
+                        // - source is a remove
+                        // - tail of slice may be inserted from suffix
+                        throw new Error("NYI");
+                    } else if (newIndex < 0 && oldIndex < 0) {
+                        // nop, move where both source and target are before the slice
+                    } else {
+                        // nop, move where both source and target are after the slice
+                    }
+                },
+                _listItemMutated: function (event) {
+                    var key = event.detail.key;
+                    var value = event.detail.value;
+                    var item = event.detail.item;
+                    this._notifyItemMutated(key, value, item);
+                },
+                _listItemRemoved: function (event) {
+                    if (this._list.length < this._start) {
+                        return;
+                    }
+                    var key = event.detail.key;
+                    var value = event.detail.value;
+                    var item = event.detail.item;
+                    var index = event.detail.index - this._start;
+                    // what about the transition to 0?
+                    if (index === 0 || index < this.length) {
+                        if (index < 0) {
+                            var prevFirst = this._list.getItem(this._start - 1);
+                            this._notifyItemRemoved(prevFirst.key, 0, prevFirst.data);
+                        } else {
+                            this._notifyItemRemoved(key, index, value, item);
+                        }
+                        // we may need to pull in a new tail item
+                        if (this._relativeLength || (this._start + this.length === this._end)) {
+                            var newLast = this._list.getItem(this._start + this.length - 1);
+                            this._notifyItemInserted(newLast.key, this.length - 1, newLast.data);
+                        }
+                    }
+                },
+
+                _listReload: function () {
+                    this._notifyReload();
+                },
+
+                /// <field type="Number" integer="true" locid="WinJS.Binding.FilteredListProjection.length" helpKeyword="WinJS.Binding.FilteredListProjection.length">Returns an integer value one higher than the highest element defined in an list.</field>
+                length: {
+                    get: function () { return this._length; },
+                    set: function (value) {
+                        if (typeof value === "number" && value >= 0) {
+                            var current = this.length;
+                            if (current > value) {
+                                this.splice(value, current - value);
+                            }
+                        } else {
+                            throw new WinJS.ErrorFromName("WinJS.Binding.List.IllegalLength", strings.illegalListLength);
+                        }
+                    }
+                },
+
+                getItem: function (index) {
+                    /// <signature helpKeyword="WinJS.Binding.FilteredListProjection.getItem">
+                    /// <summary locid="WinJS.Binding.FilteredListProjection.getItem">
+                    /// Returns a key/data pair for the specified index.
+                    /// </summary>
+                    /// <param name="index" type="Number" integer="true" locid="WinJS.Binding.FilteredListProjection.getItem_p:index">The index of the value to retrieve.</param>
+                    /// <returns type="Object" locid="WinJS.Binding.FilteredListProjection.getItem_returnValue">An object with .key and .data properties.</returns>
+                    /// </signature>
+                    index = asNumber(index);
+                    return this._list.getItem(index + this._start);
+                },
+
+                indexOfKey: function (key) {
+                    /// <signature helpKeyword="WinJS.Binding.FilteredListProjection.indexOfKey">
+                    /// <summary locid="WinJS.Binding.FilteredListProjection.indexOfKey">
+                    /// Returns the index of the first occurrence of a key in a list.
+                    /// </summary>
+                    /// <param name="key" type="String" locid="WinJS.Binding.FilteredListProjection.indexOfKey_p:key">The key to locate in the list.</param>
+                    /// <returns type="Number" integer="true" locid="WinJS.Binding.FilteredListProjection.indexOfKey_returnValue">The index of the first occurrence of a key in a list, or -1 if not found.</returns>
+                    /// </signature>
+                    return this._list.indexOfKey(key) - this._start;
+                },
+
+                notifyMutated: function (index) {
+                    /// <signature helpKeyword="WinJS.Binding.FilteredListProjection.notifyMutated">
+                    /// <summary locid="WinJS.Binding.FilteredListProjection.notifyMutated">
+                    /// Forces the list to send a itemmutated notification to any listeners for the value at the specified index.
+                    /// </summary>
+                    /// <param name="index" type="Number" integer="true" locid="WinJS.Binding.FilteredListProjection.notifyMutated_p:index">The index of the value that was mutated.</param>
+                    /// </signature>
+                    index = asNumber(index);
+                    return this._list.notifyMutated(index + this._start);
+                },
+
+                setAt: function (index, value) {
+                    /// <signature helpKeyword="WinJS.Binding.FilteredListProjection.setAt">
+                    /// <summary locid="WinJS.Binding.FilteredListProjection.setAt">
+                    /// Replaces the value at the specified index with a new value.
+                    /// </summary>
+                    /// <param name="index" type="Number" integer="true" locid="WinJS.Binding.FilteredListProjection.setAt_p:index">The index of the value that was replaced.</param>
+                    /// <param name="newValue" type="Object" locid="WinJS.Binding.FilteredListProjection.setAt_p:newValue">The new value.</param>
+                    /// </signature>
+                    index = asNumber(index);
+                    this._list.setAt(index + this._start, value);
+                },
+
+                // returns [ data* ] of removed items
+                _spliceFromKey: function (key, howMany) {
+                    var args = arguments;
+                    args[0] = this.indexOfKey(key);
+                    return this._list.splice.apply(this._list, args);
                 }
             }, {
                 supportedForProcessing: false,

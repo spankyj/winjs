@@ -6102,6 +6102,68 @@ var Tests = Tests || {};
                 LiveUnit.Assert.areEqual(10, obj.variable, "making sure that the other variable is still correct");
 
             }
+
+            this.testSliced = function () {
+                var list = new List();
+                var listener = new ListListener(list);
+                var sliced = list.createSliced(0, 5);
+                var slicedListener = new ListListener(sliced);
+                listener.assertSameAsArray([]);
+                slicedListener.assertSameAsArray([]);
+                list.push(1, 2);
+                listener.assertSameAsArray([1, 2]);
+                slicedListener.assertSameAsArray([1, 2]);
+                list.push(3, 4, 5);
+                listener.assertSameAsArray([1, 2, 3, 4, 5]);
+                slicedListener.assertSameAsArray([1, 2, 3, 4, 5]);
+                list.push(6, 7);
+                listener.assertSameAsArray([1, 2, 3, 4, 5, 6, 7]);
+                slicedListener.assertSameAsArray([1, 2, 3, 4, 5]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 4, 5, 6, 7]);
+                slicedListener.assertSameAsArray([1, 2, 4, 5, 6]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 5, 6, 7]);
+                slicedListener.assertSameAsArray([1, 2, 5, 6, 7]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 6, 7]);
+                slicedListener.assertSameAsArray([1, 2, 6, 7]);
+                list.splice(0, 4);
+                listener.assertSameAsArray([]);
+                slicedListener.assertSameAsArray([]);
+            };
+            this.testSliced2 = function () {
+                var list = new List();
+                var listener = new ListListener(list);
+                var sliced = list.createSliced(2, 5);
+                var slicedListener = new ListListener(sliced);
+                listener.assertSameAsArray([]);
+                slicedListener.assertSameAsArray([]);
+                list.push(1, 2);
+                listener.assertSameAsArray([1, 2]);
+                slicedListener.assertSameAsArray([]);
+                list.push(3, 4, 5);
+                listener.assertSameAsArray([1, 2, 3, 4, 5]);
+                slicedListener.assertSameAsArray([3, 4, 5]);
+                list.push(6, 7);
+                listener.assertSameAsArray([1, 2, 3, 4, 5, 6, 7]);
+                slicedListener.assertSameAsArray([3, 4, 5]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 4, 5, 6, 7]);
+                slicedListener.assertSameAsArray([4, 5, 6]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 5, 6, 7]);
+                slicedListener.assertSameAsArray([5, 6, 7]);
+                list.splice(2, 1);
+                listener.assertSameAsArray([1, 2, 6, 7]);
+                slicedListener.assertSameAsArray([6, 7]);
+                list.splice(2, 2);
+                listener.assertSameAsArray([1, 2]);
+                slicedListener.assertSameAsArray([]);
+                list.splice(0, 1);
+                listener.assertSameAsArray([2]);
+                slicedListener.assertSameAsArray([]);
+            };
         };
 
         LiveUnit.registerTestClass("Tests.List");
