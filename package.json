@@ -22,6 +22,7 @@
     "http-post": "~0.1.1",
     "grunt-contrib-requirejs": "^0.4.4",
     "mkpath": "^0.1.0",
-    "less": "^1.7.1"
+    "less": "^1.7.1",
+    "requirejs": "^2.1.14"
   }
 }
