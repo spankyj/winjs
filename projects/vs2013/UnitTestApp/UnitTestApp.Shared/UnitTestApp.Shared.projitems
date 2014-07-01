@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>22127bfc-3140-4619-87de-b71d518000af</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)winjs.js" />
+    <Content Include="..\..\..\..\node_modules\qunitjs\**\*.*">
+      <Link>node_modules\qunitjs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="..\..\..\..\node_modules\requirejs\require.js">
+      <Link>node_modules\require.js</Link>
+    </Content>
+    <Content Include="..\..\..\..\tasks\utilities\require-style.js">
+      <Link>require-style.js</Link>
+    </Content>
+    <Content Include="..\..\..\..\src\js\**\*.js">
+      <Link>content\winjs\js\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="..\..\..\..\src\less\**\*.less">
+      <Link>content\winjs\less\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="..\..\..\..\tests\**\*.*">
+      <Link>content\tests\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="..\..\..\..\bin\tests\**\*.*">
+      <Link>content\tests\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+</Project>

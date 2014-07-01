@@ -124,13 +124,44 @@
     <script src="../../$(TargetFramework)/js/en-US/base.strings.js"></script>                                               \r\n\
     <script src="../../$(TargetFramework)/js/en-US/ui.strings.js"></script>                                                 \r\n\
                                                                                                                             \r\n\
+    <script>window._haveWinJS = !!window.WinJS;</script>                                                                    \r\n\
+    <script src="../../../node_modules/require.js"></script>                                                                \r\n\
+    <script src="../../../winjs.js"></script>                                                                               \r\n\
+                                                                                                                            \r\n\
     <!-- Test framework references -->                                                                                      \r\n\
     <link type="text/css" rel="stylesheet" href="../../../node_modules/qunitjs/qunit/qunit.css" />                          \r\n\
     <script src="../../../node_modules/qunitjs/qunit/qunit.js"></script>                                                    \r\n\
     <script src="../TestLib/liveToQ/liveToQ.js"></script>                                                                   \r\n\
                                                                                                                             \r\n\
     <!-- Test references -->                                                                                                \r\n\
+@@TESTSTYLESHEETS                                                                                                           \r\n\
+    <script>                                                                                                                \r\n\
+        (function () {                                                                                                      \r\n\
+        window.removeEventListener("load", QUnit.load);                                                                     \r\n\
+        window.addEventListener("load", function () { MSApp.execUnsafeLocalFunction(function () { QUnit.load(); }); });     \r\n\
+        var scripts = [                                                                                                     \r\n\
 @@TESTREFERENCES                                                                                                            \r\n\
+        ];                                                                                                                  \r\n\
+        function go() {                                                                                                     \r\n\
+            scripts.reduce(function (p, url) {                                                                              \r\n\
+                return p.then(function () {                                                                                 \r\n\
+                    return new WinJS.Promise(function (c) {                                                                 \r\n\
+                        var s = document.createElement("script");                                                           \r\n\
+                        s.onload = c;                                                                                       \r\n\
+                        s.onerror = c;                                                                                      \r\n\
+                        s.src = url;                                                                                        \r\n\
+                        document.head.appendChild(s);                                                                       \r\n\
+                    });                                                                                                     \r\n\
+                });                                                                                                         \r\n\
+            }, WinJS.Promise.as());                                                                                         \r\n\
+        }                                                                                                                   \r\n\
+        if (window._haveWinJS) {                                                                                            \r\n\
+            go();                                                                                                           \r\n\
+        } else {                                                                                                            \r\n\
+            require(["/content/winjs/js/base.js"], go);                                                                     \r\n\
+        }                                                                                                                   \r\n\
+        }());                                                                                                               \r\n\
+    </script>                                                                                                               \r\n\
 </head>                                                                                                                     \r\n\
 <body>                                                                                                                      \r\n\
     <div id="qunit" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; overflow-y: scroll; -moz-user-select: text; -webkit-user-select: text; -khtml-user-select: text; -ms-user-select: text;"></div>  \r\n\
@@ -155,6 +186,7 @@
                 var html = testPageTemplate;
                 html = html.replace("@@TITLE", dir);
 
+                var testStylesheets = "";
                 var testReferences = "";
 
                 var srcs = [];
@@ -207,13 +239,13 @@
 
                 for (var i = 0; i < csss.length; i++) {
                     var url = csss[i].replace("./tests/" + dir + "/", "");
-                    testReferences += '    <link type="text/css" rel="stylesheet" href="' + url + '" />';
+                    testStylesheets += '    <link type="text/css" rel="stylesheet" href="' + url + '" />';
                 }
                 for (var i = srcs.length - 1; i >= 0; i--) {
                     var url = srcs[i].replace("./tests/" + dir + "/", "");
-                    testReferences += '    <script src="' + url + '"></script>\r\n';
+                    testReferences += '"' + url + '",\r\n';
                 }
-                testReferences = testReferences.substr(0, testReferences.length - 2);
+                html = html.replace("@@TESTSTYLESHEETS", testStylesheets);
                 html = html.replace("@@TESTREFERENCES", testReferences);
 
                 var testFolder = "./bin/tests/" + dir;
