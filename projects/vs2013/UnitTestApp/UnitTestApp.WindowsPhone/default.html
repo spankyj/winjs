@@ -2,17 +2,40 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>UnitTestApp.WindowsPhone</title>
+    <title>UnitTestApp.Windows</title>
 
     <!-- WinJS references -->
-    <!-- At runtime, ui-themed.css resolves to ui-themed.light.css or ui-themed.dark.css 
-    based on the user’s theme setting. This is part of the MRT resource loading functionality. -->
-    <link href="/css/ui-themed.css" rel="stylesheet" />
+    <link href="//Microsoft.Phone.WinJS.2.1/css/ui-dark.css" rel="stylesheet" />
+    <!--<script src="//Microsoft.WinJS.2.0/js/base.js"></script>
+    <script src="//Microsoft.WinJS.2.0/js/ui.js"></script>-->
 
-    <script src="node_modules/require.js"></script>
-    <script src="winjs.js"></script>
+    <style>
+      body {
+          display: -ms-grid;
+          -ms-grid-rows: auto 1fr;
+          -ms-grid-columns: 1fr;
+      }
+
+      #header {
+          -ms-grid-row: 1;
+          -ms-grid-column: 1;
+          width: 100%;
+      }
+
+      #tests {
+          -ms-grid-row: 2;
+          -ms-grid-column: 1;
+      }
+    </style>
+
+    <script src="default.js"></script>
+
 </head>
 <body>
-    <iframe src="ms-appx:///content/tests/Promise/test.html" style="width:100%; height:100%;"></iframe>
+    <header id="row1">
+        <h1>Unit tests in WWA</h1>
+        <select id="testSelector" onchange="changeTest()"></select>
+    </header>
+    <iframe id="tests" src="ms-appx:///content/tests/Pivot/test.html" style="width:100%; height:100%;"></iframe>
 </body>
 </html>

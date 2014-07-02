@@ -127,8 +127,8 @@ StringLiteral       7.8.4
                             case 'function':
                                 return reservedWord(identifier);
                         }
-
                         break;
+
                     case /*i*/105:
                         switch (identifier) {
                             case 'if':

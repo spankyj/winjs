@@ -13,12 +13,6 @@ define(['require'], function(req) {
     // Called to load a resource. This is the only mandatory API method that
     // needs to be implemented for the plugin to be useful.
     api.load = function(name, parentRequire, onLoad, config) {
-        // Do nothing outside of optimized build
-        if (!config.isBuild) {
-            onLoad();
-            return;
-        }
-
         // Get absolute path to file and skip it if
         // 'empty:'
         var filePath = parentRequire.toUrl(name);
@@ -27,10 +21,21 @@ define(['require'], function(req) {
             return;
         }
 
-        // Store the file as an import
-        configData = config;
-        lessImports.push('@import "' + filePath + '";');
-        onLoad();
+        // Do nothing outside of optimized build
+        if (!config.isBuild) {
+            var link = document.createElement("link");
+            link.rel = "stylesheet/less";
+            link.type = "text/css";
+            link.href = filePath;
+            document.head.appendChild(link);
+            onLoad();
+        } else {
+            // Store the file as an import
+            configData = config;
+            lessImports.push('@import "' + filePath + '";');
+            onLoad();
+        }
+
     };
 
     // Used to get the full path to a resource by name
