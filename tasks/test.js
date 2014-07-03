@@ -137,8 +137,10 @@
 @@TESTSTYLESHEETS                                                                                                           \r\n\
     <script>                                                                                                                \r\n\
         (function () {                                                                                                      \r\n\
-        window.removeEventListener("load", QUnit.load);                                                                     \r\n\
-        window.addEventListener("load", function () { MSApp.execUnsafeLocalFunction(function () { QUnit.load(); }); });     \r\n\
+        if (window.MSApp) {                                                                                                 \r\n\
+            window.removeEventListener("load", QUnit.load);                                                                 \r\n\
+            window.addEventListener("load", function () { MSApp.execUnsafeLocalFunction(function () { QUnit.load(); }); }); \r\n\
+        };                                                                                                                  \r\n\
         var scripts = [                                                                                                     \r\n\
 @@TESTREFERENCES                                                                                                            \r\n\
         ];                                                                                                                  \r\n\
