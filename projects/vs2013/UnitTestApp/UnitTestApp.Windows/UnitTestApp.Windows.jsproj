@@ -70,7 +70,9 @@
   <ItemGroup>
     <SDKReference Include="Microsoft.WinJS.2.0, Version=1.0" />
   </ItemGroup>
-  <Import Project="..\UnitTestApp.Shared\UnitTestApp.Shared.projitems" Label="Shared" />
+  <Import Project="..\src\src.projitems" Label="Shared" />
+  <Import Project="..\tests\tests.projitems" Label="Shared" />
+  <Import Project="..\bootstrap\bootstrap.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\$(WMSJSProjectDirectory)\Microsoft.VisualStudio.$(WMSJSProject).targets" />
   <Target Name="BeforeBuild">
     <Exec Command="grunt build-qunit --no-color" IgnoreExitCode="true" />

@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30312.1
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "UnitTestApp.Shared", "UnitTestApp.Shared\UnitTestApp.Shared.shproj", "{22127BFC-3140-4619-87DE-B71D518000AF}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "src", "src\src.shproj", "{22127BFC-3140-4619-87DE-B71D518000AF}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "tests", "tests\tests.shproj", "{CD7733A6-8604-4155-B1A7-934A1F97EE60}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "bootstrap", "bootstrap\bootstrap.shproj", "{9E80C24A-8360-45EB-AD3C-CE905FBE607B}"
 EndProject
 Project("{262852C6-CD72-467D-83FE-5EEB1973A190}") = "UnitTestApp.Windows", "UnitTestApp.Windows\UnitTestApp.Windows.jsproj", "{E3A48453-EFFB-4900-B7E1-048E9FC88D3D}"
 EndProject
@@ -11,9 +15,15 @@ Project("{262852C6-CD72-467D-83FE-5EEB1973A190}") = "UnitTestApp.WindowsPhone", 
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		UnitTestApp.Shared\UnitTestApp.Shared.projitems*{80b677d7-334e-4483-a557-290e4a0f84a1}*SharedItemsImports = 5
-		UnitTestApp.Shared\UnitTestApp.Shared.projitems*{22127bfc-3140-4619-87de-b71d518000af}*SharedItemsImports = 13
-		UnitTestApp.Shared\UnitTestApp.Shared.projitems*{e3a48453-effb-4900-b7e1-048e9fc88d3d}*SharedItemsImports = 5
+		src\src.projitems*{80b677d7-334e-4483-a557-290e4a0f84a1}*SharedItemsImports = 5
+		bootstrap\bootstrap.projitems*{80b677d7-334e-4483-a557-290e4a0f84a1}*SharedItemsImports = 5
+		tests\tests.projitems*{80b677d7-334e-4483-a557-290e4a0f84a1}*SharedItemsImports = 5
+		src\src.projitems*{22127bfc-3140-4619-87de-b71d518000af}*SharedItemsImports = 13
+		bootstrap\bootstrap.projitems*{9e80c24a-8360-45eb-ad3c-ce905fbe607b}*SharedItemsImports = 13
+		tests\tests.projitems*{cd7733a6-8604-4155-b1a7-934a1f97ee60}*SharedItemsImports = 13
+		src\src.projitems*{e3a48453-effb-4900-b7e1-048e9fc88d3d}*SharedItemsImports = 5
+		bootstrap\bootstrap.projitems*{e3a48453-effb-4900-b7e1-048e9fc88d3d}*SharedItemsImports = 5
+		tests\tests.projitems*{e3a48453-effb-4900-b7e1-048e9fc88d3d}*SharedItemsImports = 5
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
