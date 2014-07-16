@@ -572,7 +572,7 @@ define([
 
                 capture: function (element) {
 
-                    var capture = element._capture;
+                    var capture = this.tryLookupCapture(element);
                     if (capture) {
                         capture.refCount++;
                         return capture;
@@ -619,7 +619,7 @@ define([
                     }
                 },
 
-                compile: function (bodyTemplate, replacements, supportDelayBindings) {
+                compile: function (bodyTemplate, replacements, supportDelayBindingsAndControls) {
 
                     if (this._stage > Stage.compile) {
                         throw "Illegal: once we have moved past compile we cannot revist it";
@@ -630,7 +630,7 @@ define([
 
                     this._returnedElement = this._extractChild ? "container.firstElementChild" : "container";
 
-                    var control_processing = this._controls.map(function (control) {
+                    var all_control_processing = this._controls.map(function (control) {
                         var constructionFormatString;
                         if (control.async) {
                             constructionFormatString = "{target}.winControl = {target}.winControl || new {SafeConstructor}({target}, {options}, controlDone)";
@@ -669,6 +669,18 @@ define([
                             return construction;
                         }
                     });
+                    var control_processing, delayed_control_processing;
+                    if (supportDelayBindingsAndControls) {
+                        control_processing = all_control_processing.filter(function (unused, index) {
+                            return !that._controls[index].delayable;
+                        });
+                        delayed_control_processing = all_control_processing.filter(function (unused, index) {
+                            return that._controls[index].delayable;
+                        });
+                    } else {
+                        control_processing = all_control_processing;
+                        delayed_control_processing = [];
+                    }
 
                     var all_binding_processing = this._bindings.map(function (binding) {
                         switch (binding.kind) {
@@ -720,7 +732,7 @@ define([
                         }
                     });
                     var binding_processing, delayed_binding_processing;
-                    if (supportDelayBindings) {
+                    if (supportDelayBindingsAndControls) {
                         binding_processing = all_binding_processing.filter(function (unused, index) {
                             return !that._bindings[index].delayable;
                         });
@@ -750,11 +762,12 @@ define([
                     });
 
                     var renderComplete = "";
-                    if (supportDelayBindings && delayed_binding_processing.length) {
+                    if (supportDelayBindingsAndControls && (delayed_binding_processing.length || delayed_control_processing.length)) {
                         renderComplete = that.formatCode(
                             renderItemImplRenderCompleteTemplate,
                             {
-                                delayed_binding_processing: statements(delayed_binding_processing)
+                                delayed_binding_processing: statements(delayed_binding_processing),
+                                delayed_control_processing: statements(delayed_control_processing),
                             }
                         );
                     }
@@ -1082,6 +1095,8 @@ define([
                             binding.elementCapture = that.capture(element);
                             binding.bindingText = bindingText;
                         });
+                        var elementCapture = this.tryLookupCapture(element);
+                        elementCapture.bindings = elementBindings;
                         bindings.push.apply(bindings, elementBindings);
                     }
 
@@ -1165,6 +1180,7 @@ define([
                             name: name,
                             // We have already checked this for requireSupportedForProcessing
                             SafeConstructor: this.importSafe(name, ControlConstructor),
+                            delayable: ControlConstructor.delayable,
                             async: async,
                             optionsText: literal(optionsText),
                             optionsParsed: options_parser(optionsText),
@@ -1725,6 +1741,28 @@ define([
                     }
                     this._stage = Stage.optimze;
 
+                    var that = this;
+
+                    // Identify all bindings which are under a delayable control and mark them as delayable and nonOptimized
+                    var delayableControls = this._controls.filter(function (control) { return control.delayable; });
+                    if (delayableControls.length) {
+                        function forceDelayedBindings(element) {
+                            var capture = that.tryLookupCapture(element);
+                            if (capture && capture.bindings) {
+                                capture.bindings.forEach(function (binding) {
+                                    binding.nonOptimized = true;
+                                    binding.delayable = true;
+                                });
+                            }
+                            for (var i = 0; i < element.childElementCount; i++) {
+                                forceDelayedBindings(element.children[i]);
+                            }
+                        }
+                        delayableControls.forEach(function (control) {
+                            forceDelayedBindings(control.elementCapture.element);
+                        });
+                    }
+
                     // Identify all bindings which can be turned into tree bindings, in some cases this consists
                     //  of simply changing their type and providing a definition, in other cases it involves 
                     //  adding a new tree binding to complement the other binding
@@ -1732,6 +1770,9 @@ define([
                     for (var i = 0; i < this._bindings.length; i++) {
                         var binding = this._bindings[i];
                         if (binding.template) {
+                            continue;
+                        }
+                        if (binding.nonOptimized) {
                             continue;
                         }
 
@@ -1746,6 +1787,7 @@ define([
                                 newBinding.elementCapture.refCount++;
                                 this.oneTimeTreeBinding(newBinding);
                                 this._bindings.splice(i, 0, newBinding);
+                                newBinding.elementCapture.bindings.push(newBinding);
                                 binding.delayable = true;
                                 i++;
                                 break;
@@ -1760,6 +1802,7 @@ define([
                                 newBinding.elementCapture.refCount++;
                                 this.setAttributeOneTimeTreeBinding(newBinding);
                                 this._bindings.splice(i, 0, newBinding);
+                                newBinding.elementCapture.bindings.push(newBinding);
                                 binding.delayable = true;
                                 i++;
                                 break;
@@ -1794,7 +1837,10 @@ define([
                             if (binding.template) {
                                 continue;
                             }
-                            if (binding.kind === BindingKind.error) {
+                            if (binding.nonOptimized) {
+                                continue;
+                            }
+                             if (binding.kind === BindingKind.error) {
                                 continue;
                             }
 
@@ -1945,6 +1991,10 @@ define([
 
                 },
 
+                tryLookupCapture: function (element) {
+                    return element._capture;
+                },
+
             }, {
                 _TreeCSE: TreeCSE,
 
@@ -1987,20 +2037,28 @@ define([
                     compiler.lower();
 
                     var codeTemplate;
-                    var delayBindings;
+                    var delayBindingsAndControls;
                     switch (options.target) {
                         case "render":
                             codeTemplate = compiler.async ? renderImplCodeAsyncTemplate : renderImplCodeTemplate;
-                            delayBindings = false;
+                            delayBindingsAndControls = false;
                             break;
 
                         case "renderItem":
-                            codeTemplate = compiler.async ? renderItemImplCodeAsyncTemplate : renderItemImplCodeTemplate;
-                            delayBindings = true;
+                            if (compiler.async) {
+                                codeTemplate = renderItemImplCodeAsyncTemplate;
+                                // @TODO, consider whether we can support delayed controls in the face of nested templates 
+                                //  and async controls, this is rare enough that for now I'm just punting.
+                                delayBindingsAndControls = false;
+                            } else {
+                                // Common case and fast-path for things like ListView item rendering
+                                codeTemplate = renderItemImplCodeTemplate;
+                                delayBindingsAndControls = true;
+                            }
                             break;
                     }
 
-                    var body = compiler.compile(codeTemplate, importAliases, delayBindings);
+                    var body = compiler.compile(codeTemplate, importAliases, delayBindingsAndControls);
                     var render = compiler.link(body);
 
                     compiler.done();
@@ -2023,7 +2081,6 @@ define([
                 });
             }
 
-            
             var renderImplMainCodePrefixTemplate = trimLinesRight(
 "container.classList.add(\"win-template\");                                                              \n" +
 "var html = {html};                                                                                      \n" +
@@ -2212,7 +2269,12 @@ define([
 "}}).then(function (item) {{                                                                             \n" +
 "    return item.ready || item;                                                                          \n" +
 "}}).then(function (item) {{                                                                             \n" +
+"    // Delayed control processing                                                                       \n" +
+"    {delayed_control_processing};                                                                       \n" +
+"                                                                                                        \n" +
+"    // Delayed binding processing                                                                       \n" +
 "    {delayed_binding_processing};                                                                       \n" +
+"                                                                                                        \n" +
 "    return element;                                                                                     \n" +
 "}});                                                                                                    \n"
 );

@@ -75,6 +75,33 @@ window.MyCustomControl = WinJS.Class.define(function (element, options) {
 
 });
 
+// Random control used by tests that need a control. Give it whatever surface area you 
+//  desire for testing purposes.
+//
+window.MyCustomDelayableControl = WinJS.Class.define(function (element, options) {
+    this.element = element || document.createElement("div");
+    this.element.winControl = this;
+    this.element.classList.add("mycustomdelayablecontrol");
+    this.element.classList.add("win-disposable");
+    this.userRating = 0;
+    this.maxRating = 5;
+    WinJS.UI.setOptions(this, options || {});
+    this._disposed = false;
+}, {
+
+    dispose: function () {
+        if (this._disposed) {
+            return;
+        }
+        this._disposed = true;
+    },
+
+}, {
+
+    delayable: true
+
+});
+
 // This is not a test fixture
 CorsicaTests.TemplatesTestBase = function () {
     "use strict";
@@ -1052,6 +1079,74 @@ CorsicaTests.TemplateCompilerTests = function () {
         });
 
     };
+
+    this.testDelayedControl = async(function () {
+        var templateDiv = document.createElement("div");
+        templateDiv.innerHTML = "<div id='testObTemplateStyleBind2'>\n\
+  <div class='one' data-win-bind='style.backgroundColor: x'></div>\n\
+  <div class='two' data-win-bind='tabIndex: y WinJS.Binding.setAttribute'></div>\n\
+  <div class='three' data-win-bind='winControl.userRating: y' data-win-control='MyCustomDelayableControl'>\n\
+    <div class='four' data-win-bind='style.backgroundColor: x; madeUpProperty: y'></div>\n\
+  </div>\n\
+</div>";
+
+        var template = new WinJS.Binding.Template(templateDiv);
+        template._renderItemImpl = template._compileTemplate({
+            target: "renderItem",
+        });
+
+        LiveUnit.Assert.areEqual("function", typeof template._renderImpl);
+
+        var string = template._renderItemImpl.toString();
+        // Because these need to setup reoccurant bindings we should find evidence in the form of 
+        //  the parsed binding expressions.
+        //
+        LiveUnit.Assert.areNotEqual(-1, string.indexOf('["style","backgroundColor"]'));
+        LiveUnit.Assert.areNotEqual(-1, string.indexOf('["tabIndex"]'));
+        LiveUnit.Assert.areNotEqual(-1, string.indexOf('["madeUpProperty"]'));
+        LiveUnit.Assert.areNotEqual(-1, string.indexOf('["userRating"]'));
+
+        var readyComplete;
+        var readyPromise = new WinJS.Promise(function (c) {
+            readyComplete = c;
+        });
+
+        var itemComplete;
+        var itemPromise = new WinJS.Promise(function (c) {
+            itemComplete = c;
+        });
+
+        var item = {
+            data: { x: "red", y: 100 },
+            ready: readyPromise,
+        };
+        itemComplete(item);
+
+        var elementDone = false;
+        var result = template.renderItem(itemPromise);
+        result.element.then(function (d) {
+            elementDone = true;
+            LiveUnit.Assert.areEqual("red", d.querySelector(".one").style.backgroundColor);
+            LiveUnit.Assert.areEqual(100, d.querySelector(".two").tabIndex);
+            // Before readyComplete has been fired nothing on .three or .four should be initialized
+            LiveUnit.Assert.isFalse(d.querySelector(".three").classList.contains("mycustomdelayablecontrol"));
+            LiveUnit.Assert.isNull(d.querySelector(".three").winControl);
+            LiveUnit.Assert.areEqual("", d.querySelector(".four").style.backgroundColor);
+            LiveUnit.Assert.isNull(d.querySelector(".four").madeUpProperty);
+        });
+        LiveUnit.Assert.isTrue(elementDone);
+
+        readyComplete(item);
+        return result.renderComplete.then(function (d) {
+            LiveUnit.Assert.areEqual("red", d.querySelector(".one").style.backgroundColor);
+            LiveUnit.Assert.areEqual(100, d.querySelector(".two").tabIndex);
+            // After readyComplete has been fired .three or .four should be initialized with the control and bindings
+            LiveUnit.Assert.isTrue(d.querySelector(".three").classList.contains("mycustomdelayablecontrol"));
+            LiveUnit.Assert.areEqual(100, d.querySelector(".three").winControl.userRating);
+            LiveUnit.Assert.areEqual("red", d.querySelector(".four").style.backgroundColor);
+            LiveUnit.Assert.areEqual(100, d.querySelector(".four").madeUpProperty);
+        });
+    });
 
     // In order to support blend we need to support changing the template and recompiling
     //
