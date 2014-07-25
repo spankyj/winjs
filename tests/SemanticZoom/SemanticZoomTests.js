@@ -412,30 +412,6 @@ WinJSTests.SemanticZoomTests = function () {
     })();
 
     (function () {
-        ["GridLayout", "ListLayout"].forEach(function (layoutName) {
-            function generateTest(layoutName, dsType) {
-                return function (complete) {
-                    var sezo = dsType({ type: layoutName, orientation: WinJS.UI.Orientation.horizontal }, 500),
-                        listDiv1 = document.getElementById("child1"),
-                        listDiv2 = document.getElementById("child2");
-
-                    waitForReady(listDiv1.winControl)().
-                        then(function () {
-                            // Wait for 2 seconds for the Aria worker to execute
-                            return WinJS.Promise.timeout(2000);
-                        }).
-                        done(complete, function (er) {
-                            throw er;
-                        });
-                };
-            }
-
-            that["testWaitForAriaWorkerSezoBindingList_" + layoutName] = generateTest(layoutName, createSezoWithBindingList);
-            that["testWaitForAriaWorkerSezoVDS_" + layoutName] = generateTest(layoutName, createSezoWithVDS);
-        });
-    })();
-
-    (function () {
         function generateTest(fromLayout, toLayout) {
             return function (complete) {
                 var sezo = createSezoWithBindingList({ type: fromLayout, orientation: WinJS.UI.Orientation.horizontal }, 500),
